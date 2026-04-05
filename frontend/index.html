@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <h1>Expense Tracker</h1>
+      <button class="btn btn-primary" id="openFormBtn">+ Add Expense</button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- summary cards -->
+    <section class="summary-cards" id="summaryCards" aria-label="Spending summary"></section>
+
+    <!-- filters -->
+    <section class="filters" aria-label="Filter expenses">
+      <label for="filterCategory" class="sr-only">Filter by category</label>
+      <select id="filterCategory">
+        <option value="">All Categories</option>
+      </select>
+
+      <label for="filterMonth" class="sr-only">Filter by month</label>
+      <input type="month" id="filterMonth" aria-label="Filter by month" />
+
+      <button class="btn btn-ghost" id="clearFilters">Clear</button>
+    </section>
+
+    <!-- expense list -->
+    <section class="expense-list" id="expenseList" aria-label="Expense list">
+      <p class="empty-state">No expenses yet. Add one above.</p>
+    </section>
+
+    <!-- charts -->
+    <section class="charts" aria-label="Spending charts">
+      <div class="chart-card">
+        <h3>By Category</h3>
+        <canvas id="categoryChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Monthly Trend</h3>
+        <canvas id="trendChart"></canvas>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- add / edit modal -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Expense</h2>
+        <button class="modal-close" id="closeModalBtn" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="expenseForm" novalidate>
+        <input type="hidden" id="expenseId" />
+
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" placeholder="e.g. Grocery run" autocomplete="off" aria-describedby="titleError" />
+          <span class="field-error" id="titleError" role="alert"></span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="amount">Amount ($)</label>
+            <input type="number" id="amount" min="0.01" step="0.01" placeholder="0.00" aria-describedby="amountError" />
+            <span class="field-error" id="amountError" role="alert"></span>
+          </div>
+          <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" id="date" aria-describedby="dateError" />
+            <span class="field-error" id="dateError" role="alert"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="category">Category</label>
+          <select id="category" aria-describedby="categoryError"></select>
+          <span class="field-error" id="categoryError" role="alert"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description <span class="optional">(optional)</span></label>
+          <textarea id="description" rows="2" placeholder="Any extra notes..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- toast notification -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
