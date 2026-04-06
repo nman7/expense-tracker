@@ -1,39 +1,40 @@
 # Expense Tracker
 
-A single-page web application for tracking personal expenses. Users can log spending across categories, edit or remove entries, and view breakdowns and monthly trends — all without leaving the page.
+A web app that helps you keep track of your personal spending. You can add expenses with a title, amount, date, category, and optional notes. You can edit or delete them anytime, filter by category or month, and see a visual breakdown of where your money is going — all on one page without any reloads.
 
 ---
 
 ## Tech Stack
 
-| Layer      | Technology                               |
-|------------|------------------------------------------|
-| Frontend   | Vanilla JavaScript (ES6+)                |
-| Styling    | Custom CSS (CSS variables, flexbox, grid)|
-| Charts     | Chart.js                                 |
-| Backend    | Python 3 / FastAPI                       |
-| Routing    | FastAPI APIRouter (`/api/expenses`, `/api/categories`) |
-| Server     | Uvicorn                                  |
-| Database   | MySQL                                    |
-| DB Driver  | mysql-connector-python                   |
-| Validation | Pydantic (FastAPI)                       |
-| Deployment | Not deployed — run locally via Uvicorn   |
+| Layer      | Technology                                                    |
+|------------|---------------------------------------------------------------|
+| Frontend   | Vanilla JavaScript (ES6+)                                     |
+| Styling    | Custom CSS (CSS variables, flexbox, grid)                     |
+| Charts     | Chart.js                                                      |
+| Backend    | Python 3 / FastAPI                                            |
+| Routing    | FastAPI APIRouter (`/api/expenses`, `/api/categories`)        |
+| Server     | Uvicorn                                                       |
+| Database   | MySQL                                                         |
+| DB Driver  | mysql-connector-python                                        |
+| Validation | Pydantic (FastAPI)                                            |
+| Deployment | Not deployed — runs locally via Uvicorn                       |
 
 ---
 
 ## Features
 
-- Add, edit, and delete expense entries with instant page updates
-- Filter expenses by category or month
-- Summary cards: total spent, this-month total, top category, transaction count
-- Doughnut chart showing spending by category
-- Bar chart showing monthly spending trend
-- Inline delete confirmation (no browser dialogs)
-- Client-side form validation with inline error messages
-- Error banner if the backend is unreachable
-- Keyboard accessible: Escape closes modal, focus management on open
-- `aria-label` on all icon-only buttons
-- Responsive layout for mobile and tablet
+- Add, edit, and delete expenses without leaving the page
+- Each expense has a title, amount, date, category, and optional description
+- Filter expenses by category or by month
+- Summary cards showing total spent, this month's total, top spending category, and transaction count
+- Doughnut chart breaking down spending by category
+- Bar chart showing spending trends month by month
+- Inline delete confirmation so you don't accidentally remove something
+- Form validation with clear error messages before anything gets saved
+- Toast notifications when you add, edit, or delete an expense
+- Error banner if the backend goes down
+- Keyboard accessible — Escape closes the modal, focus moves correctly
+- Works on mobile and tablet
 
 ---
 
@@ -41,53 +42,53 @@ A single-page web application for tracking personal expenses. Users can log spen
 
 ```
 expense-tracker/
-├── backend/               # FastAPI application
+├── backend/                  # FastAPI server
 │   ├── routes/
-│   │   ├── expenses.py    # CRUD endpoints for expenses
-│   │   └── categories.py  # endpoint to fetch category list
-│   ├── database.py        # MySQL connection helper
-│   ├── main.py            # app entry point, CORS, route registration
-│   ├── .env.example       # environment variable template
-│   └── requirements.txt
-├── frontend/              # single-page frontend
-│   ├── index.html         # the one HTML file
-│   ├── app.js             # all JS: API calls, rendering, events
-│   └── style.css
+│   │   ├── expenses.py       # all CRUD endpoints for expenses
+│   │   └── categories.py     # endpoint to get the category list
+│   ├── database.py           # MySQL connection setup
+│   ├── main.py               # app entry point, CORS, mounts frontend
+│   ├── .env.example          # template for your DB credentials
+│   └── requirements.txt      # Python dependencies
+├── frontend/                 # everything the browser loads
+│   ├── index.html            # the only HTML file
+│   ├── app.js                # all JS — API calls, rendering, events
+│   └── style.css             # all styles
 └── database/
-    ├── schema.sql         # table definitions
-    └── seed.sql           # sample data
+    ├── schema.sql            # creates the tables
+    └── seed.sql              # adds sample categories and expenses
 ```
 
 ---
 
 ## Getting Started
 
-### 1. Database
+### 1. Set up the database
 
 ```bash
 mysql -u root -p < database/schema.sql
 mysql -u root -p < database/seed.sql
 ```
 
-### 2. Backend
+### 2. Start the backend
 
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
+source venv/bin/activate        # on Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env          # fill in your DB credentials
+cp .env.example .env            # then open .env and fill in your DB details
 uvicorn main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
+The API runs at `http://localhost:8000`. You can explore all endpoints at `http://localhost:8000/docs`.
 
-### 3. Frontend
+### 3. Open the app
 
-Open `frontend/index.html` directly in a browser, or let FastAPI serve it (it's already configured to serve the frontend folder at `/`).
+The frontend is served automatically by FastAPI. Just go to `http://localhost:8000` in your browser.
 
 ---
 
 ## Challenges
 
-Getting FastAPI to serve the static frontend while also handling API routes required careful ordering — the static `StaticFiles` mount must come last in `main.py` so it doesn't intercept API requests before they reach the routers. Handling MySQL date serialisation was non-obvious because Python's `datetime.date` objects are not JSON-serialisable by default, requiring explicit `str()` conversion in every route handler that returns a date field. On the frontend, re-rendering charts on every data refresh required explicitly destroying the previous Chart.js instances first; skipping this caused a "canvas already in use" error that silently broke chart updates. Building the inline delete confirmation without a UI library involved careful DOM manipulation and programmatic focus management to keep the interaction keyboard-accessible. Preventing XSS required routing all user-supplied text through a `createTextNode`-based escape helper before injecting it via `innerHTML`, since template literals do not sanitise values automatically.
+One thing that took some figuring out was getting FastAPI to serve the static frontend files while also handling API routes — the static mount has to go last in `main.py`, otherwise it intercepts API requests before they hit the routers. MySQL also doesn't return dates as plain strings by default, so every route that returns an expense had to manually convert the date and timestamp fields using `str()`. On the frontend, Chart.js holds onto its canvas element between renders, so the old chart instance has to be explicitly destroyed before drawing a new one — skipping that caused a silent error that broke chart updates entirely. Building the delete confirmation inline (without any popups or libraries) also needed careful focus management to stay keyboard accessible.
