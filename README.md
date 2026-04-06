@@ -6,16 +6,18 @@ A single-page web application for tracking personal expenses. Users can log spen
 
 ## Tech Stack
 
-| Layer      | Technology                          |
-|------------|-------------------------------------|
-| Frontend   | Vanilla JavaScript (ES6+)           |
-| Styling    | Custom CSS (CSS variables, flexbox, grid) |
-| Charts     | Chart.js                            |
-| Backend    | Python 3 / FastAPI                  |
-| Server     | Uvicorn                             |
-| Database   | MySQL                               |
-| DB Driver  | mysql-connector-python              |
-| Validation | Pydantic (FastAPI)                  |
+| Layer      | Technology                               |
+|------------|------------------------------------------|
+| Frontend   | Vanilla JavaScript (ES6+)                |
+| Styling    | Custom CSS (CSS variables, flexbox, grid)|
+| Charts     | Chart.js                                 |
+| Backend    | Python 3 / FastAPI                       |
+| Routing    | FastAPI APIRouter (`/api/expenses`, `/api/categories`) |
+| Server     | Uvicorn                                  |
+| Database   | MySQL                                    |
+| DB Driver  | mysql-connector-python                   |
+| Validation | Pydantic (FastAPI)                       |
+| Deployment | Not deployed — run locally via Uvicorn   |
 
 ---
 
@@ -88,4 +90,4 @@ Open `frontend/index.html` directly in a browser, or let FastAPI serve it (it's 
 
 ## Challenges
 
-Getting FastAPI to serve the static frontend while also handling API routes required careful ordering — the static mount has to come last so it doesn't swallow API requests. Handling MySQL date serialisation was also non-obvious since Python's `datetime.date` objects aren't JSON-serialisable by default, which required explicit string conversion in the route handlers. On the frontend, re-rendering charts on every data refresh meant the old Chart.js instances had to be explicitly destroyed first to avoid canvas conflicts. Building the inline delete confirmation without a library involved careful DOM manipulation and focus management to keep the interaction accessible and smooth.
+Getting FastAPI to serve the static frontend while also handling API routes required careful ordering — the static `StaticFiles` mount must come last in `main.py` so it doesn't intercept API requests before they reach the routers. Handling MySQL date serialisation was non-obvious because Python's `datetime.date` objects are not JSON-serialisable by default, requiring explicit `str()` conversion in every route handler that returns a date field. On the frontend, re-rendering charts on every data refresh required explicitly destroying the previous Chart.js instances first; skipping this caused a "canvas already in use" error that silently broke chart updates. Building the inline delete confirmation without a UI library involved careful DOM manipulation and programmatic focus management to keep the interaction keyboard-accessible. Preventing XSS required routing all user-supplied text through a `createTextNode`-based escape helper before injecting it via `innerHTML`, since template literals do not sanitise values automatically.

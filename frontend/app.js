@@ -146,6 +146,13 @@ function validateForm(data) {
   return valid;
 }
 
+// escape HTML to prevent XSS when rendering user-supplied text
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
 // ── render expenses ──────────────────────────────────────
 function renderExpenses(expenses) {
   const list = document.getElementById('expenseList');
@@ -157,16 +164,16 @@ function renderExpenses(expenses) {
 
   list.innerHTML = expenses.map(exp => `
     <div class="expense-item" data-id="${exp.id}">
-      <span class="category-dot" style="background:${exp.category_color}" aria-hidden="true"></span>
+      <span class="category-dot" style="background:${escapeHTML(exp.category_color)}" aria-hidden="true"></span>
       <div class="expense-info">
-        <div class="expense-title">${exp.title}</div>
-        <div class="expense-meta">${exp.category_name} &middot; ${formatDate(exp.date)}</div>
-        ${exp.description ? `<div class="expense-meta">${exp.description}</div>` : ''}
+        <div class="expense-title">${escapeHTML(exp.title)}</div>
+        <div class="expense-meta">${escapeHTML(exp.category_name)} &middot; ${formatDate(exp.date)}</div>
+        ${exp.description ? `<div class="expense-meta">${escapeHTML(exp.description)}</div>` : ''}
       </div>
       <span class="expense-amount">$${parseFloat(exp.amount).toFixed(2)}</span>
       <div class="expense-actions">
-        <button class="btn-icon" onclick="handleEdit(${exp.id})" aria-label="Edit ${exp.title}">✏️</button>
-        <button class="btn-icon danger" onclick="handleDeleteClick(this, ${exp.id})" aria-label="Delete ${exp.title}">🗑️</button>
+        <button class="btn-icon" onclick="handleEdit(${exp.id})" aria-label="Edit ${escapeHTML(exp.title)}">✏️</button>
+        <button class="btn-icon danger" onclick="handleDeleteClick(this, ${exp.id})" aria-label="Delete ${escapeHTML(exp.title)}">🗑️</button>
       </div>
     </div>
   `).join('');
@@ -258,7 +265,7 @@ function renderTrendChart(expenses) {
       datasets: [{
         label: 'Spending ($)',
         data,
-        backgroundColor: '#4f46e5',
+        backgroundColor: '#5b5fef',
         borderRadius: 6,
       }],
     },
