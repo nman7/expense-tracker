@@ -1,6 +1,6 @@
 # Expense Tracker
 
-A web app that helps you keep track of your personal spending. You can add expenses with a title, amount, date, category, and optional notes. You can edit or delete them anytime, filter by category or month, and see a visual breakdown of where your money is going — all on one page without any reloads.
+A web app that helps you keep track of your personal spending. You can add expenses with a title, amount, date, category, and optional notes. You can edit or delete them anytime, filter by category or month, and see a visual breakdown of where your money is going. Everything happens on one page with no reloads.
 
 ---
 
@@ -17,7 +17,7 @@ A web app that helps you keep track of your personal spending. You can add expen
 | Database   | MySQL                                                         |
 | DB Driver  | mysql-connector-python                                        |
 | Validation | Pydantic (FastAPI)                                            |
-| Deployment | Not deployed — runs locally via Uvicorn                       |
+| Deployment | Not deployed, runs locally via Uvicorn                        |
 
 ---
 
@@ -26,14 +26,14 @@ A web app that helps you keep track of your personal spending. You can add expen
 - Add, edit, and delete expenses without leaving the page
 - Each expense has a title, amount, date, category, and optional description
 - Filter expenses by category or by month
-- Summary cards showing total spent, this month's total, top spending category, and transaction count
+- Summary cards showing total spent, this months total, top spending category, and transaction count
 - Doughnut chart breaking down spending by category
 - Bar chart showing spending trends month by month
-- Inline delete confirmation so you don't accidentally remove something
+- Inline delete confirmation so you dont accidentally remove something
 - Form validation with clear error messages before anything gets saved
 - Toast notifications when you add, edit, or delete an expense
 - Error banner if the backend goes down
-- Keyboard accessible — Escape closes the modal, focus moves correctly
+- Keyboard accessible, Escape closes the modal and focus moves correctly
 - Works on mobile and tablet
 
 ---
@@ -52,7 +52,7 @@ expense-tracker/
 │   └── requirements.txt      # Python dependencies
 ├── frontend/                 # everything the browser loads
 │   ├── index.html            # the only HTML file
-│   ├── app.js                # all JS — API calls, rendering, events
+│   ├── app.js                # all JS, API calls, rendering, events
 │   └── style.css             # all styles
 └── database/
     ├── schema.sql            # creates the tables
@@ -91,4 +91,4 @@ The frontend is served automatically by FastAPI. Just go to `http://localhost:80
 
 ## Challenges
 
-One thing that took some figuring out was getting FastAPI to serve the static frontend files while also handling API routes — the static mount has to go last in `main.py`, otherwise it intercepts API requests before they hit the routers. MySQL also doesn't return dates as plain strings by default, so every route that returns an expense had to manually convert the date and timestamp fields using `str()`. On the frontend, Chart.js holds onto its canvas element between renders, so the old chart instance has to be explicitly destroyed before drawing a new one — skipping that caused a silent error that broke chart updates entirely. Building the delete confirmation inline (without any popups or libraries) also needed careful focus management to stay keyboard accessible.
+One thing that took some figuring out was getting FastAPI to serve the static frontend files while also handling API routes. The static mount has to go last in `main.py`, otherwise it intercepts API requests before they reach the routers. MySQL also does not return dates as plain strings by default, so every route that returns an expense had to manually convert the date and timestamp fields using `str()`. On the frontend, Chart.js holds onto its canvas element between renders, so the old chart instance has to be explicitly destroyed before drawing a new one. Skipping that caused a silent error that broke chart updates entirely. Building the delete confirmation inline without any popups or libraries also needed careful focus management to keep it keyboard accessible.
