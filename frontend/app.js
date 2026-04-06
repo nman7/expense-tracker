@@ -5,7 +5,7 @@ let categories = [];
 let categoryChart = null;
 let trendChart = null;
 
-// ── api helpers ──────────────────────────────────────────
+// api helpers
 async function fetchJSON(url, options = {}) {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
@@ -33,7 +33,7 @@ const api = {
   getCategories: () => fetchJSON(`${API}/categories/`),
 };
 
-// ── error banner ─────────────────────────────────────────
+// error banner
 function showErrorBanner(msg) {
   let banner = document.getElementById('errorBanner');
   if (!banner) {
@@ -51,7 +51,7 @@ function hideErrorBanner() {
   if (banner) banner.classList.remove('visible');
 }
 
-// ── toast ────────────────────────────────────────────────
+// toast
 function showToast(msg) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
@@ -59,7 +59,7 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// ── modal ────────────────────────────────────────────────
+// modal
 function openModal(expense = null) {
   const overlay = document.getElementById('modalOverlay');
   const titleEl = document.getElementById('modalTitle');
@@ -91,7 +91,7 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
 }
 
-// ── inline form validation ───────────────────────────────
+// inline form validation
 function setFieldError(fieldId, message) {
   const field = document.getElementById(fieldId);
   const errEl = document.getElementById(fieldId + 'Error');
@@ -153,7 +153,7 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
-// ── render expenses ──────────────────────────────────────
+// render expenses
 function renderExpenses(expenses) {
   const list = document.getElementById('expenseList');
 
@@ -179,7 +179,7 @@ function renderExpenses(expenses) {
   `).join('');
 }
 
-// ── summary cards ────────────────────────────────────────
+// summary cards
 function renderSummary(expenses) {
   const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
@@ -205,7 +205,7 @@ function renderSummary(expenses) {
     </div>
     <div class="summary-card">
       <div class="label">Top Category</div>
-      <div class="value" style="font-size:1.1rem">${topCat ? topCat[0] : '—'}</div>
+      <div class="value" style="font-size:1.1rem">${topCat ? escapeHTML(topCat[0]) : '—'}</div>
     </div>
     <div class="summary-card">
       <div class="label">Transactions</div>
@@ -214,7 +214,7 @@ function renderSummary(expenses) {
   `;
 }
 
-// ── charts ───────────────────────────────────────────────
+// charts
 function renderCharts(expenses) {
   renderCategoryChart(expenses);
   renderTrendChart(expenses);
@@ -279,20 +279,20 @@ function renderTrendChart(expenses) {
   });
 }
 
-// ── category dropdowns ───────────────────────────────────
+// category dropdowns
 function populateCategoryDropdowns() {
   const filterSelect = document.getElementById('filterCategory');
   const formSelect = document.getElementById('category');
 
   const options = categories.map(c =>
-    `<option value="${c.id}">${c.name}</option>`
+    `<option value="${c.id}">${escapeHTML(c.name)}</option>`
   ).join('');
 
   filterSelect.innerHTML = '<option value="">All Categories</option>' + options;
   formSelect.innerHTML = '<option value="">Select a category</option>' + options;
 }
 
-// ── load data ────────────────────────────────────────────
+// load data
 async function loadExpenses() {
   const categoryId = document.getElementById('filterCategory').value;
   const month = document.getElementById('filterMonth').value;
@@ -300,6 +300,9 @@ async function loadExpenses() {
   const params = {};
   if (categoryId) params.category_id = categoryId;
   if (month) params.month = month;
+
+  // show loading state while fetching
+  document.getElementById('expenseList').innerHTML = '<p class="loading-state">Loading...</p>';
 
   try {
     allExpenses = await api.getExpenses(params);
@@ -309,16 +312,17 @@ async function loadExpenses() {
     renderCharts(allExpenses);
   } catch (e) {
     showErrorBanner('Could not load expenses. Make sure the server is running.');
+    document.getElementById('expenseList').innerHTML = '';
   }
 }
 
-// ── edit ─────────────────────────────────────────────────
+// edit
 function handleEdit(id) {
   const expense = allExpenses.find(e => e.id === id);
   if (expense) openModal(expense);
 }
 
-// ── custom inline delete confirmation ────────────────────
+// custom inline delete confirmation
 function handleDeleteClick(btn, id) {
   // if a confirm row is already open for this item, ignore
   const item = btn.closest('.expense-item');
@@ -350,7 +354,7 @@ function handleDeleteClick(btn, id) {
   confirm.querySelector('.btn-confirm-yes').focus();
 }
 
-// ── form submit ──────────────────────────────────────────
+// form submit
 document.getElementById('expenseForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -387,7 +391,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
   }
 });
 
-// ── event listeners ──────────────────────────────────────
+// event listeners
 document.getElementById('openFormBtn').addEventListener('click', () => openModal());
 document.getElementById('closeModalBtn').addEventListener('click', closeModal);
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
@@ -415,7 +419,7 @@ document.addEventListener('keydown', (e) => {
   document.getElementById(id).addEventListener('change', () => clearFieldError(id));
 });
 
-// ── helpers ──────────────────────────────────────────────
+// helpers
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split('-');
   return new Date(y, m - 1, d).toLocaleDateString('en-AU', {
@@ -423,7 +427,7 @@ function formatDate(dateStr) {
   });
 }
 
-// ── init ─────────────────────────────────────────────────
+// init
 async function init() {
   try {
     categories = await api.getCategories();
