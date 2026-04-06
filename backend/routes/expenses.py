@@ -5,7 +5,8 @@ from database import get_connection
 
 router = APIRouter()
 
-# request body shape for creating/updating an expense
+# Validated request body for create and update.
+# title: 1-100 chars enforced on the frontend; amount must be > 0; date is ISO YYYY-MM-DD.
 class ExpenseBody(BaseModel):
     title: str
     category_id: int
@@ -19,6 +20,9 @@ def get_expenses(category_id: Optional[int] = None, month: Optional[str] = None)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        # Base query joins expenses with categories so the frontend gets
+        # category name and colour in a single round-trip.
+        # WHERE 1=1 lets us append optional AND clauses cleanly.
         query = """
             SELECT e.id, e.title, e.amount, e.date, e.description, e.created_at,
                    c.id as category_id, c.name as category_name, c.color as category_color
@@ -33,7 +37,7 @@ def get_expenses(category_id: Optional[int] = None, month: Optional[str] = None)
             params.append(category_id)
 
         if month:
-            # month format: YYYY-MM
+            # month param arrives as YYYY-MM; DATE_FORMAT extracts the same pattern from the stored date
             query += " AND DATE_FORMAT(e.date, '%Y-%m') = %s"
             params.append(month)
 
