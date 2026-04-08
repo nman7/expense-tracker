@@ -5,7 +5,7 @@ from routes import expenses, categories
 
 app = FastAPI(title="Expense Tracker API")
 
-# allow frontend to talk to backend during development
+# without this browser will block all the request from frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,9 +13,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# api routes
+# adding the routes for expenses and categories
 app.include_router(expenses.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(categories.router, prefix="/api/categories", tags=["categories"])
 
-# serve the frontend
+# this line must be at last otherwise it will intercept all API calls
 app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")

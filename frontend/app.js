@@ -1,11 +1,12 @@
 const API = 'http://localhost:8000/api';
 
+// storing expenses and categories globally so we dont fetch again and again
 let allExpenses = [];
 let categories = [];
 let categoryChart = null;
 let trendChart = null;
 
-// api helpers
+// one helper to handle all fetch, no need to repeat try catch everywhere
 async function fetchJSON(url, options = {}) {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
@@ -15,10 +16,12 @@ async function fetchJSON(url, options = {}) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || `Something went wrong (${res.status})`);
   }
+  // 204 means delete success, no body will come
   if (res.status === 204) return null;
   return res.json();
 }
 
+// all API methods in one place
 const api = {
   getExpenses: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -33,7 +36,7 @@ const api = {
   getCategories: () => fetchJSON(`${API}/categories/`),
 };
 
-// error banner
+// shows red banner when server is down or something goes badly wrong
 function showErrorBanner(msg) {
   let banner = document.getElementById('errorBanner');
   if (!banner) {
@@ -46,12 +49,13 @@ function showErrorBanner(msg) {
   banner.classList.add('visible');
 }
 
+// hide the banner once things are back to normal
 function hideErrorBanner() {
   const banner = document.getElementById('errorBanner');
   if (banner) banner.classList.remove('visible');
 }
 
-// toast
+// small toast for success messages, auto disappear after 3 seconds
 function showToast(msg) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
@@ -59,12 +63,13 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// modal
+// opens modal, if expense passed then it prefill the form for editing
 function openModal(expense = null) {
   const overlay = document.getElementById('modalOverlay');
   const titleEl = document.getElementById('modalTitle');
   const form = document.getElementById('expenseForm');
 
+  // reset form first otherwise old data will still showing
   form.reset();
   clearFormErrors();
   document.getElementById('expenseId').value = '';
@@ -79,11 +84,12 @@ function openModal(expense = null) {
     document.getElementById('description').value = expense.description || '';
   } else {
     titleEl.textContent = 'Add Expense';
+    // default to todays date so user dont have to select everytime
     document.getElementById('date').value = new Date().toISOString().split('T')[0];
   }
 
   overlay.classList.add('open');
-  // move focus into modal for accessibility
+  // focus first field for keyboard accessibility
   document.getElementById('title').focus();
 }
 
@@ -91,7 +97,7 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
 }
 
-// inline form validation
+// marks field as invalid and show error message below it
 function setFieldError(fieldId, message) {
   const field = document.getElementById(fieldId);
   const errEl = document.getElementById(fieldId + 'Error');
@@ -112,10 +118,12 @@ function clearFieldError(fieldId) {
   }
 }
 
+// clear all field errors at once before revalidating
 function clearFormErrors() {
   ['title', 'amount', 'date', 'category'].forEach(clearFieldError);
 }
 
+// validate form before saving, returns false if any field is wrong
 function validateForm(data) {
   let valid = true;
   clearFormErrors();
@@ -146,14 +154,14 @@ function validateForm(data) {
   return valid;
 }
 
-// escape HTML to prevent XSS when rendering user-supplied text
+// escape HTML before rendering user input, prevent XSS attack
 function escapeHTML(str) {
   const div = document.createElement('div');
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
 }
 
-// render expenses
+// renders all expense items in the list
 function renderExpenses(expenses) {
   const list = document.getElementById('expenseList');
 
@@ -179,15 +187,17 @@ function renderExpenses(expenses) {
   `).join('');
 }
 
-// summary cards
+// calculates and renders the 4 summary cards on top
 function renderSummary(expenses) {
   const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
+  // this month means current month not last 30 days
   const thisMonth = new Date().toISOString().slice(0, 7);
   const monthTotal = expenses
     .filter(e => e.date.startsWith(thisMonth))
     .reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
+  // finding which category user is spending most on
   const catTotals = {};
   expenses.forEach(e => {
     catTotals[e.category_name] = (catTotals[e.category_name] || 0) + parseFloat(e.amount);
@@ -214,7 +224,7 @@ function renderSummary(expenses) {
   `;
 }
 
-// charts
+// render both charts together
 function renderCharts(expenses) {
   renderCategoryChart(expenses);
   renderTrendChart(expenses);
@@ -232,6 +242,7 @@ function renderCategoryChart(expenses) {
   const data = labels.map(l => catTotals[l].toFixed(2));
   const colors = labels.map(l => catColors[l]);
 
+  // must destroy old chart first otherwise chart.js will throw error silently
   if (categoryChart) categoryChart.destroy();
   categoryChart = new Chart(document.getElementById('categoryChart'), {
     type: 'doughnut',
@@ -244,12 +255,14 @@ function renderCategoryChart(expenses) {
 }
 
 function renderTrendChart(expenses) {
+  // grouping expenses by month for the trend bar chart
   const monthTotals = {};
   expenses.forEach(e => {
     const month = e.date.slice(0, 7);
     monthTotals[month] = (monthTotals[month] || 0) + parseFloat(e.amount);
   });
 
+  // sort months so bars show in correct order left to right
   const sorted = Object.keys(monthTotals).sort();
   const labels = sorted.map(m => {
     const [y, mo] = m.split('-');
@@ -257,6 +270,7 @@ function renderTrendChart(expenses) {
   });
   const data = sorted.map(m => monthTotals[m].toFixed(2));
 
+  // same destroy pattern as category chart
   if (trendChart) trendChart.destroy();
   trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'bar',
@@ -279,7 +293,7 @@ function renderTrendChart(expenses) {
   });
 }
 
-// category dropdowns
+// populate both category dropdowns, one in filter and one in the form
 function populateCategoryDropdowns() {
   const filterSelect = document.getElementById('filterCategory');
   const formSelect = document.getElementById('category');
@@ -292,7 +306,7 @@ function populateCategoryDropdowns() {
   formSelect.innerHTML = '<option value="">Select a category</option>' + options;
 }
 
-// load data
+// fetch expenses from server based on current filter values
 async function loadExpenses() {
   const categoryId = document.getElementById('filterCategory').value;
   const month = document.getElementById('filterMonth').value;
@@ -301,7 +315,7 @@ async function loadExpenses() {
   if (categoryId) params.category_id = categoryId;
   if (month) params.month = month;
 
-  // show loading state while fetching
+  // show loading while waiting for the server response
   document.getElementById('expenseList').innerHTML = '<p class="loading-state">Loading...</p>';
 
   try {
@@ -316,15 +330,15 @@ async function loadExpenses() {
   }
 }
 
-// edit
+// find expense in local array and open modal with its data
 function handleEdit(id) {
   const expense = allExpenses.find(e => e.id === id);
   if (expense) openModal(expense);
 }
 
-// custom inline delete confirmation
+// inline confirmation instead of using ugly browser confirm popup
 function handleDeleteClick(btn, id) {
-  // if a confirm row is already open for this item, ignore
+  // dont show another confirm if one is already open for this item
   const item = btn.closest('.expense-item');
   if (item.querySelector('.delete-confirm')) return;
 
@@ -346,15 +360,17 @@ function handleDeleteClick(btn, id) {
     }
   });
 
+  // no button just remove the row, nothing is deleted
   confirm.querySelector('.btn-confirm-no').addEventListener('click', () => {
     confirm.remove();
   });
 
   item.appendChild(confirm);
+  // auto focus yes button so user can press enter to confirm
   confirm.querySelector('.btn-confirm-yes').focus();
 }
 
-// form submit
+// handles both add new and edit existing expense
 document.getElementById('expenseForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -367,6 +383,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
     description: document.getElementById('description').value.trim() || null,
   };
 
+  // dont send request if validation is fail
   if (!validateForm(data)) return;
 
   const submitBtn = document.getElementById('submitBtn');
@@ -386,16 +403,18 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
   } catch (e) {
     showToast(e.message || 'Something went wrong.');
   } finally {
+    // re-enable button no matter what happen
     submitBtn.disabled = false;
     submitBtn.textContent = 'Save';
   }
 });
 
-// event listeners
+// all the button click listeners
 document.getElementById('openFormBtn').addEventListener('click', () => openModal());
 document.getElementById('closeModalBtn').addEventListener('click', closeModal);
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 
+// click outside modal to close it
 document.getElementById('modalOverlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeModal();
 });
@@ -403,23 +422,25 @@ document.getElementById('modalOverlay').addEventListener('click', (e) => {
 document.getElementById('filterCategory').addEventListener('change', loadExpenses);
 document.getElementById('filterMonth').addEventListener('change', loadExpenses);
 
+// clear button reset both filters and reload all expenses
 document.getElementById('clearFilters').addEventListener('click', () => {
   document.getElementById('filterCategory').value = '';
   document.getElementById('filterMonth').value = '';
   loadExpenses();
 });
 
+// escape key should close the modal
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
 });
 
-// clear field error on input
+// clear error as soon as user start typing in that field
 ['title', 'amount', 'date', 'category'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => clearFieldError(id));
   document.getElementById(id).addEventListener('change', () => clearFieldError(id));
 });
 
-// helpers
+// format date from YYYY-MM-DD to readable format like 5 Apr 2026
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split('-');
   return new Date(y, m - 1, d).toLocaleDateString('en-AU', {
@@ -427,7 +448,7 @@ function formatDate(dateStr) {
   });
 }
 
-// init
+// init function, categories must load first before expenses
 async function init() {
   try {
     categories = await api.getCategories();
