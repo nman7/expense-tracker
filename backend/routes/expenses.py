@@ -5,8 +5,7 @@ from database import get_connection
 
 router = APIRouter()
 
-# Validated request body for create and update.
-# title: 1-100 chars enforced on the frontend; amount must be > 0; date is ISO YYYY-MM-DD.
+# pydantic handles the type validation, description is optional rest all fields are required
 class ExpenseBody(BaseModel):
     title: str
     category_id: int
@@ -20,9 +19,8 @@ def get_expenses(category_id: Optional[int] = None, month: Optional[str] = None)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Base query joins expenses with categories so the frontend gets
-        # category name and colour in a single round-trip.
-        # WHERE 1=1 lets us append optional AND clauses cleanly.
+        # joining with categories table so we get name and colour in single query
+        # WHERE 1=1 is used so we can append filters cleanly without messy if-else
         query = """
             SELECT e.id, e.title, e.amount, e.date, e.description, e.created_at,
                    c.id as category_id, c.name as category_name, c.color as category_color
@@ -37,16 +35,17 @@ def get_expenses(category_id: Optional[int] = None, month: Optional[str] = None)
             params.append(category_id)
 
         if month:
-            # month param arrives as YYYY-MM; DATE_FORMAT extracts the same pattern from the stored date
+            # month comes as YYYY-MM format from frontend
             query += " AND DATE_FORMAT(e.date, '%Y-%m') = %s"
             params.append(month)
 
+        # showing latest expense on top
         query += " ORDER BY e.date DESC"
 
         cursor.execute(query, params)
         expenses = cursor.fetchall()
 
-        # convert date to string so it serialises cleanly
+        # mysql returns date object, converting to string so JSON dont break
         for exp in expenses:
             exp["date"] = str(exp["date"])
             exp["created_at"] = str(exp["created_at"])
@@ -64,6 +63,7 @@ def create_expense(body: ExpenseBody):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        # inserting new expense in the database
         cursor.execute(
             "INSERT INTO expenses (title, category_id, amount, date, description) VALUES (%s, %s, %s, %s, %s)",
             (body.title, body.category_id, body.amount, body.date, body.description)
@@ -71,7 +71,7 @@ def create_expense(body: ExpenseBody):
         conn.commit()
         new_id = cursor.lastrowid
 
-        # return the newly created expense with category info
+        # fetching back the same expense with category info so frontend can render it
         cursor.execute("""
             SELECT e.id, e.title, e.amount, e.date, e.description, e.created_at,
                    c.id as category_id, c.name as category_name, c.color as category_color
@@ -84,6 +84,7 @@ def create_expense(body: ExpenseBody):
         expense["created_at"] = str(expense["created_at"])
         return expense
     except Exception as e:
+        # rollback so broken data dont stay in the database
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -104,10 +105,11 @@ def update_expense(expense_id: int, body: ExpenseBody):
         )
         conn.commit()
 
+        # if rowcount is 0 means expense with this id is not exist
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Expense not found")
 
-        # return updated expense with category info
+        # returning updated expense so frontend dont need to fetch again
         cursor.execute("""
             SELECT e.id, e.title, e.amount, e.date, e.description, e.created_at,
                    c.id as category_id, c.name as category_name, c.color as category_color
@@ -137,9 +139,11 @@ def delete_expense(expense_id: int):
         cursor.execute("DELETE FROM expenses WHERE id = %s", (expense_id,))
         conn.commit()
 
+        # if nothing deleted means this expense was not there in database
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Expense not found")
 
+        # 204 means no content, so returning None is correct here
         return None
     except HTTPException:
         raise
